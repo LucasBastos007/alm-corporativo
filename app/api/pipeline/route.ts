@@ -3,24 +3,50 @@ import { getCrmDados } from "@/lib/crm-consorcio"
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
-// Mapeamento das etapas do CRM de Consórcio para os 3 estágios do painel
-// etapa >= 0 → Ligação    (Prospectando)
-// etapa >= 1 → Interação  (Interagindo)
-// etapa >= 2 → Agendamento (Qualificado)
+const SB_URL  = process.env.SUPABASE_URL!
+const SB_KEY  = process.env.SUPABASE_ANON_KEY!
+const SB_HDRS = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+
+function brazilDate(offsetDays = 0): string {
+  const d = new Date(Date.now() - 3 * 60 * 60 * 1000 + offsetDays * 86_400_000)
+  return d.toISOString().slice(0, 10)
+}
+
+async function countAgendamentos(start: string, end: string): Promise<number> {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/agenda?select=id&data=gte.${start}&data=lte.${end}&status=neq.cancelado`,
+      { headers: { ...SB_HDRS, "Prefer": "count=exact", "Range": "0-0" }, cache: "no-store" }
+    )
+    const range = res.headers.get("content-range") ?? ""
+    const total = parseInt(range.split("/")[1] ?? "0", 10)
+    return isNaN(total) ? 0 : total
+  } catch {
+    return 0
+  }
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
     const periodo = searchParams.get("periodo") === "mensal" ? "mensal" : "dia"
-    const dados = await getCrmDados(periodo)
 
-    // Para "dia": usa funilDia (calculado dos campos de desempenho: leadsRecebidos,
-    // leadsPendentesContato, kpisTempoReal) — mesma fonte que o ALM Dashboard.
-    // Para "mensal": usa funil (cumulativo por etapaFunil >= i nos leads brutos).
+    const today = brazilDate()
+    const br    = new Date(Date.now() - 3 * 60 * 60 * 1000)
+    const monthStart = `${br.getUTCFullYear()}-${String(br.getUTCMonth() + 1).padStart(2, "0")}-01`
+
+    const agStart = periodo === "dia" ? today : monthStart
+    const agEnd   = today
+
+    const [dados, agendamento] = await Promise.all([
+      getCrmDados(periodo),
+      countAgendamentos(agStart, agEnd),
+    ])
+
     const src = (periodo === "dia" && dados.funilDia) ? dados.funilDia : dados.funil
 
-    const ligacao     = src[0]?.count ?? 0
-    const interacao   = src[1]?.count ?? 0
-    const agendamento = src[2]?.count ?? 0
+    const ligacao   = src[0]?.count ?? 0
+    const interacao = src[1]?.count ?? 0
 
     const etapas = [
       { id: "ligacao",     label: "Ligação",     cor: "#6366f1", total: ligacao,     crmEtapa: "Prospectando" },
