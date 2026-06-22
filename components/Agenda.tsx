@@ -197,7 +197,7 @@ export function Agenda() {
 
       {!loading && !erro && agendamentos.length > 0 && (
         <div style={{ overflowX: "auto", overflowY: "auto", maxHeight: 520 }}>
-          <div style={{ display: "flex", minWidth: CONSULTORES.length * 175, padding: "12px 10px", gap: 8, alignItems: "flex-start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${CONSULTORES.length}, minmax(0, 1fr))`, width: "100%", padding: "12px 10px", gap: 6, alignItems: "flex-start" }}>
             {CONSULTORES.map((nome, idx) => {
               const color = COLORS[idx % COLORS.length]
               const appts = agendamentos
@@ -207,7 +207,7 @@ export function Agenda() {
               const novosCount = appts.filter(a => a.status !== "remarcado" && a.status !== "desmarcado").length
 
               return (
-                <div key={nome} style={{ flex: 1, minWidth: 165, display: "flex", flexDirection: "column", gap: 6 }}>
+                <div key={nome} style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
 
                   {/* Consultor header */}
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "6px 4px 10px" }}>
