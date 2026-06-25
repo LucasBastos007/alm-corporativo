@@ -15,7 +15,7 @@ function brazilDate(offsetDays = 0): string {
 async function countAgendamentos(start: string, end: string): Promise<number> {
   try {
     const res = await fetch(
-      `${SB_URL}/rest/v1/agenda?select=id&created_at=gte.${start}&created_at=lt.${end}&status=neq.cancelado`,
+      `${SB_URL}/rest/v1/agenda?select=id&criado_em=gte.${start}&criado_em=lt.${end}&status=neq.cancelado`,
       { headers: { ...SB_HDRS, "Prefer": "count=exact", "Range": "0-0" }, cache: "no-store" }
     )
     const range = res.headers.get("content-range") ?? ""
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
     const br       = new Date(Date.now() - 3 * 60 * 60 * 1000)
     const monthStart = `${br.getUTCFullYear()}-${String(br.getUTCMonth() + 1).padStart(2, "0")}-01`
 
-    // created_at is UTC; Brazil = UTC-3, so midnight Brazil = 03:00 UTC
+    // criado_em is UTC; Brazil = UTC-3, so midnight Brazil = 03:00 UTC
     const agStart = periodo === "dia" ? `${today}T03:00:00Z` : `${monthStart}T03:00:00Z`
     const agEnd   = `${tomorrow}T03:00:00Z`
 
