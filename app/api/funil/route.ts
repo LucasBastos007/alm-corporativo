@@ -54,12 +54,15 @@ export async function GET(req: Request) {
       return { nome, total, interagindo, qualificado, negociado, vendido }
     })
 
+    const debug = searchParams.get("debug") === "1"
+
     return Response.json({
       ok: true,
       funil:        dados.funil,   // [{label, count, color}] — 5 etapas cumulativas
       consultores,
       vendas:       dados.vendas,
       atualizadoEm: new Date().toISOString(),
+      ...(debug ? { _rawVendedores: dados.vendedores.map(v => ({ nome: v.nome, total: v.total })) } : {}),
     })
   } catch (err) {
     console.error("[funil]", err)
