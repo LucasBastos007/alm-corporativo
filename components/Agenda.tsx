@@ -206,17 +206,17 @@ export function Agenda() {
     <div className="card overflow-hidden flex flex-col">
 
       {/* Toggle Dia / Semana */}
-      <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "14px 20px", borderBottom: "1px solid var(--border)" }}>
+      <div style={{ display: "inline-flex", padding: 4, borderRadius: 12, background: "oklch(0 0 0 / 0.045)", gap: 2, margin: "16px 20px 0", alignSelf: "flex-start" }}>
         {(["dia", "semana"] as const).map(v => (
           <button
             key={v}
             onClick={() => { setViewMode(v); setFiltroAberto(null) }}
             style={{
-              padding: "6px 18px", borderRadius: 8, border: "none", cursor: "pointer",
+              padding: "9px 18px", borderRadius: 9, border: "none", cursor: "pointer",
               fontSize: 13, fontWeight: 700, lineHeight: 1,
-              background: viewMode === v ? "var(--text)" : "transparent",
-              color: viewMode === v ? "var(--bg)" : "var(--text-muted)",
-              transition: "background 0.15s, color 0.15s",
+              background: viewMode === v ? "oklch(0.55 0.19 276 / 0.1)" : "transparent",
+              color: viewMode === v ? "oklch(0.55 0.19 276)" : "oklch(0.5 0.01 260)",
+              transition: "background 0.2s, color 0.2s",
             }}
           >{v === "dia" ? "Dia" : "Semana"}</button>
         ))}

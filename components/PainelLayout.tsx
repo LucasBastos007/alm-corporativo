@@ -157,9 +157,9 @@ export function PainelLayout() {
         <div style={{ animation: entered ? "fadeSlideIn 0.35s cubic-bezier(.16,1,.3,1) both" : "none" }}>
 
           {/* Pledge banner */}
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "10px 20px", borderRadius: 999, background: "rgba(217,119,6,0.07)", border: "1px solid rgba(217,119,6,0.18)", marginBottom: 24 }}>
-            <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#d97706", flexShrink: 0 }} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: "oklch(0.35 0.06 75)" }}>{PLEDGES[tab]}</span>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "12px 22px", borderRadius: 999, background: "linear-gradient(90deg, oklch(0.97 0.05 80), oklch(0.96 0.04 75))", border: "1px solid color-mix(in oklch, oklch(0.7 0.14 85) 40%, transparent)", marginBottom: 24, cursor: "pointer" }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "oklch(0.6 0.14 75)", flexShrink: 0, animation: "pulseDot 1.6s ease-in-out infinite" }} />
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 15, fontWeight: 700, color: "oklch(0.3 0.05 75)", letterSpacing: "0.01em" }}>{PLEDGES[tab]}</span>
           </div>
 
           {tab === "overview" && (
