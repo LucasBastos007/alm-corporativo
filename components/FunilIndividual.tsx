@@ -65,11 +65,17 @@ function primNome(s: string) {
     .split(/\s+/)[0]
 }
 
+const ALIASES: Record<string, string[]> = {
+  mateus:   ["matheus"],
+  matheus:  ["mateus"],
+}
+
 function matchConsultor(nomeDb: string, nomeFixo: string) {
   const db   = primNome(nomeDb)
   const fixo = primNome(nomeFixo)
   if (db === fixo) return true
   if (db.includes(fixo) || fixo.includes(db)) return true
+  if (ALIASES[fixo]?.includes(db) || ALIASES[db]?.includes(fixo)) return true
   const len = Math.min(5, db.length, fixo.length)
   return len >= 4 && db.slice(0, len) === fixo.slice(0, len)
 }
