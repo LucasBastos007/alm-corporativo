@@ -8,20 +8,9 @@ interface ProdutoStats {
   contratos: number
 }
 
-interface Consultor {
-  nome: string
-  fichas: number
-  aprovados: number
-  propostas: number
-  contratos: number
-  imovel: number
-  veiculo: number
-}
-
 interface ApiData {
   teamFunil: ProdutoStats
   produto:   { imovel: ProdutoStats; veiculo: ProdutoStats }
-  consultores: Consultor[]
   periodo: { start: string; end: string }
 }
 
@@ -29,194 +18,151 @@ function pct(a: number, b: number) {
   return b > 0 ? Math.round((a / b) * 100) : 0
 }
 
-function pctColor(v: number) {
-  return v >= 30 ? "#22c55e" : v >= 10 ? "#f59e0b" : v > 0 ? "#f97316" : "var(--text-muted)"
-}
-
-function Pill({ value, color }: { value: string; color: string }) {
-  return (
-    <span style={{ fontSize: 9, fontWeight: 800, color, background: `${color}18`, padding: "2px 7px", borderRadius: 99, border: `1px solid ${color}30`, whiteSpace: "nowrap" }}>
-      {value}
-    </span>
-  )
-}
-
-function KpiBox({ label, value, sub, color }: { label: string; value: number; sub?: string; color: string }) {
-  return (
-    <div style={{ flex: 1, textAlign: "center", padding: "10px 8px", borderRadius: 12, background: `${color}0d`, border: `1px solid ${color}25` }}>
-      <p style={{ fontSize: 24, fontWeight: 900, color, margin: 0, lineHeight: 1 }}>{value}</p>
-      {sub && <p style={{ fontSize: 9, fontWeight: 700, color, margin: "3px 0 0", opacity: 0.7 }}>{sub}</p>}
-      <p style={{ fontSize: 9, color: "var(--text-muted)", margin: "2px 0 0" }}>{label}</p>
-    </div>
-  )
-}
-
-function TipoCard({ label, icon, stats, color }: { label: string; icon: string; stats: ProdutoStats; color: string }) {
-  const convFicha    = pct(stats.propostas, stats.fichas)
-  const convProposta = pct(stats.contratos, stats.propostas)
-
-  return (
-    <div style={{ flex: 1, borderRadius: 14, padding: "14px 16px", background: `${color}08`, border: `1px solid ${color}25`, display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 20 }}>{icon}</span>
-        <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text)" }}>{label}</span>
-      </div>
-
-      {/* Mini funil */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {[
-          { label: "Fichas",    count: stats.fichas,    color: color,      conv: null },
-          { label: "Proposta",  count: stats.propostas, color: "#f97316",  conv: convFicha },
-          { label: "Vendido",   count: stats.contratos, color: "#22c55e",  conv: convProposta },
-        ].map((e, i) => (
-          <div key={e.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ width: 56, fontSize: 9, color: "var(--text-muted)", fontWeight: 600, flexShrink: 0 }}>{e.label}</span>
-            <div style={{ flex: 1, height: 22, borderRadius: 6, background: `${e.color}15`, border: `1px solid ${e.color}35`, display: "flex", alignItems: "center", paddingLeft: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 900, color: e.color }}>{e.count}</span>
-            </div>
-            {e.conv !== null ? (
-              <span style={{ width: 30, fontSize: 9, fontWeight: 800, color: pctColor(e.conv), textAlign: "right", flexShrink: 0 }}>
-                {e.conv}%
-              </span>
-            ) : <span style={{ width: 30 }} />}
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+const ACCENT = "oklch(0.55 0.19 276)"
+const R_FICHA = 58
+const CIRC_FICHA = 2 * Math.PI * R_FICHA
 
 export function ControleFicha() {
   const [data, setData]       = useState<ApiData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [erro, setErro]       = useState("")
-  const [syncAt, setSyncAt]   = useState("")
 
   const load = useCallback(async () => {
     try {
       const res  = await fetch("/api/parceiro", { cache: "no-store" })
       const json = await res.json()
-      if (json.ok) {
-        setData(json)
-        setSyncAt(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }))
-        setErro("")
-      } else setErro(json.error ?? "Erro")
-    } catch (e) { setErro(String(e)) }
+      if (json.ok) setData(json)
+    } catch { /* silent */ }
     finally { setLoading(false) }
   }, [])
 
   useEffect(() => { load(); const id = setInterval(load, 60_000); return () => clearInterval(id) }, [load])
 
+  const funil   = data?.teamFunil ?? { fichas: 0, aprovados: 0, propostas: 0, contratos: 0 }
+  const { fichas, aprovados, propostas, contratos } = funil
+  const maxCount    = fichas || 1
+  const convGeral   = pct(contratos, fichas)
+  const fichaOffset = CIRC_FICHA * (1 - convGeral / 100)
+  const gaugeColor  = convGeral >= 20 ? "oklch(0.58 0.14 155)" : convGeral >= 10 ? "#f59e0b" : ACCENT
+
+  const stages: { label: string; value: number; color: string; convFromPrev?: number }[] = [
+    { label: "Fichas",    value: fichas,    color: ACCENT },
+    { label: "Aprovados", value: aprovados, color: "oklch(0.5 0.14 155)", convFromPrev: pct(aprovados, fichas) },
+    { label: "Propostas", value: propostas, color: "#f97316",              convFromPrev: pct(propostas, aprovados) },
+    { label: "Contratos", value: contratos, color: "oklch(0.58 0.14 155)", convFromPrev: pct(contratos, propostas) },
+  ]
+
+  const imovel  = data?.produto.imovel  ?? { fichas: 0, aprovados: 0, propostas: 0, contratos: 0 }
+  const veiculo = data?.produto.veiculo ?? { fichas: 0, aprovados: 0, propostas: 0, contratos: 0 }
+
   return (
-    <div className="card overflow-hidden flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b flex-wrap gap-2"
-        style={{ borderColor: "var(--border)" }}>
-        <div>
-          <p className="section-label">Controle de Ficha</p>
-          <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-            Fichas · Propostas · Vendas · Mês atual — Base44
-          </p>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {syncAt && <span style={{ fontSize: 10, color: "var(--text-muted)" }}>sync {syncAt}</span>}
-          <span style={{ fontSize: 9, fontWeight: 700, color: "#f97316", background: "rgba(249,115,22,0.1)", padding: "2px 8px", borderRadius: 99, border: "1px solid rgba(249,115,22,0.25)" }}>
-            Base44
-          </span>
-        </div>
+    <div style={{ display: "flex", flexDirection: "column" }}>
+
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "oklch(0.55 0.01 260)", marginBottom: 12 }}>
+        Controle de Ficha — Fichas, propostas e vendas do mês
       </div>
 
-      {loading && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: 40 }}>
-          <div style={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid #f97316", borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }} />
-          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Carregando fichas...</span>
-        </div>
-      )}
+      <div style={{ padding: "28px 24px", borderRadius: 18, background: "oklch(1 0 0)", border: "1px solid oklch(0 0 0 / 0.07)", boxShadow: "0 1px 2px oklch(0 0 0 / 0.04)", marginBottom: 26, display: "flex", alignItems: "center", gap: 28 }}>
 
-      {!loading && erro && (
-        <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: 20 }}>
-          <span>⚠️</span>
-          <span style={{ fontSize: 13, color: "#dc2626" }}>{erro}</span>
-        </div>
-      )}
-
-      {!loading && !erro && data && (
-        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 24 }}>
-
-          {/* Funil principal: Fichas → Proposta → Vendido */}
-          {(() => {
-            const { fichas, aprovados, propostas, contratos } = data.teamFunil
-            const convAprov = pct(aprovados, fichas)
-            const convProp  = pct(propostas, aprovados)
-            const convVenda = pct(contratos, propostas)
-            const convGeral = pct(contratos, fichas)
-            const stages = [
-              { label: "Fichas",    count: fichas,    color: "#6366f1", icon: "📋" },
-              { label: "Aprovados", count: aprovados, color: "#16a34a", icon: "✅" },
-              { label: "Proposta",  count: propostas, color: "#f97316", icon: "📄" },
-              { label: "Vendido",   count: contratos, color: "#22c55e", icon: "🏆" },
-            ]
-            const maxCount = fichas || 1
-            const convs = [null, convAprov, convProp, convVenda]
-            return (
-              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                {stages.map((s, i) => (
-                  <div key={s.label}>
-                    {/* Seta de conversão */}
-                    {i > 0 && (
-                      <div style={{ display: "flex", alignItems: "center", height: 28, gap: 8, padding: "0 8px" }}>
-                        <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-                        <span style={{ fontSize: 11, fontWeight: 800, color: pctColor(convs[i] ?? 0), whiteSpace: "nowrap" }}>
-                          ↓ {convs[i]}% de conversão
-                        </span>
-                        <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-                      </div>
-                    )}
-                    {/* Barra */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <span style={{ fontSize: 16, width: 24, flexShrink: 0 }}>{s.icon}</span>
-                      <span style={{ width: 68, fontSize: 12, fontWeight: 600, color: "var(--text-muted)", flexShrink: 0 }}>{s.label}</span>
-                      <div style={{ flex: 1, height: 44, borderRadius: 10, background: "rgba(0,0,0,0.04)", position: "relative", overflow: "hidden" }}>
-                        <div style={{
-                          position: "absolute", top: 0, left: 0, bottom: 0,
-                          width: `${Math.max((s.count / maxCount) * 100, s.count > 0 ? 4 : 0)}%`,
-                          background: `${s.color}20`, border: `1.5px solid ${s.color}50`,
-                          borderRadius: 10, transition: "width 0.8s ease",
-                          display: "flex", alignItems: "center", paddingLeft: 14,
-                        }}>
-                          <span style={{ fontSize: 18, fontWeight: 900, color: s.color }}>{s.count}</span>
-                        </div>
-                        {s.count === 0 && (
-                          <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 15, fontWeight: 900, color: "var(--text-muted)" }}>0</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {/* Conversão geral */}
-                <div style={{ marginTop: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "10px 16px", borderRadius: 10, background: `${pctColor(convGeral)}0d`, border: `1px solid ${pctColor(convGeral)}25` }}>
-                  <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600 }}>Conversão geral fichas → vendas</span>
-                  <span style={{ fontSize: 22, fontWeight: 900, color: pctColor(convGeral) }}>{convGeral}%</span>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+          {stages.map(s => (
+            <div key={s.label}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <div style={{
+                  width: `${Math.max((s.value / maxCount) * 100, s.value > 0 ? 8 : 4)}%`,
+                  maxWidth: "100%",
+                  height: 44,
+                  borderRadius: 10,
+                  background: s.color,
+                  transition: "width 1.2s cubic-bezier(.16,1,.3,1)",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                }}>
+                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: "oklch(0.99 0 0)" }}>
+                    {loading ? "—" : s.value}
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "oklch(0.99 0 0 / 0.85)" }}>{s.label}</span>
                 </div>
               </div>
-            )
-          })()}
+              {s.convFromPrev !== undefined && (
+                <div style={{ textAlign: "center", fontSize: 11.5, fontWeight: 700, color: "oklch(0.55 0.01 260)", padding: "6px 0" }}>
+                  ↓ {s.convFromPrev}% de conversão
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
 
-          {/* Por tipo */}
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              Por tipo de produto
-            </p>
-            <div style={{ display: "flex", gap: 12 }}>
-              <TipoCard label="Imóvel"  icon="🏠" stats={data.produto.imovel}  color="#6366f1" />
-              <TipoCard label="Veículo" icon="🚗" stats={data.produto.veiculo} color="#f59e0b" />
+        <div style={{ width: 1, alignSelf: "stretch", background: "oklch(0 0 0 / 0.07)", flexShrink: 0 }} />
+
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, flexShrink: 0 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "oklch(0.55 0.01 260)", textAlign: "center" }}>
+            Conversão geral<br />fichas → vendas
+          </div>
+          <div style={{ position: "relative", width: 140, height: 140 }}>
+            <svg width="140" height="140" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
+              <circle cx="70" cy="70" r={R_FICHA} fill="none" stroke="oklch(0 0 0 / 0.07)" strokeWidth="13" />
+              <circle
+                cx="70" cy="70" r={R_FICHA}
+                fill="none"
+                stroke={gaugeColor}
+                strokeWidth="13"
+                strokeLinecap="round"
+                strokeDasharray={CIRC_FICHA}
+                strokeDashoffset={fichaOffset}
+                style={{ transition: "stroke-dashoffset 1.4s cubic-bezier(.16,1,.3,1)" }}
+              />
+            </svg>
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 32, fontWeight: 700, color: "oklch(0.22 0.01 260)" }}>
+                {convGeral}%
+              </span>
             </div>
           </div>
-
         </div>
-      )}
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "oklch(0.55 0.01 260)", marginBottom: 12 }}>
+        Por tipo de produto
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 18 }}>
+        {[{ name: "Imóvel", stats: imovel }, { name: "Veículo", stats: veiculo }].map(({ name, stats }) => (
+          <div key={name} style={{ padding: "20px 22px", borderRadius: 16, background: "oklch(1 0 0)", border: "1px solid oklch(0 0 0 / 0.07)", boxShadow: "0 1px 2px oklch(0 0 0 / 0.04)" }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "oklch(0.24 0.01 260)", marginBottom: 14 }}>{name}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 13, color: "oklch(0.5 0.01 260)" }}>Fichas</span>
+                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, color: ACCENT }}>
+                  {loading ? "—" : stats.fichas}
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 13, color: "oklch(0.5 0.01 260)" }}>Proposta</span>
+                <span>
+                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, color: "oklch(0.64 0.15 70)" }}>
+                    {loading ? "—" : stats.propostas}
+                  </span>
+                  {" "}
+                  <span style={{ fontSize: 11.5, color: "oklch(0.55 0.01 260)" }}>
+                    {loading ? "" : `${pct(stats.propostas, stats.fichas)}%`}
+                  </span>
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 13, color: "oklch(0.5 0.01 260)" }}>Vendido</span>
+                <span>
+                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, color: "oklch(0.58 0.14 155)" }}>
+                    {loading ? "—" : stats.contratos}
+                  </span>
+                  {" "}
+                  <span style={{ fontSize: 11.5, color: "oklch(0.55 0.01 260)" }}>
+                    {loading ? "" : `${pct(stats.contratos, stats.propostas)}%`}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
