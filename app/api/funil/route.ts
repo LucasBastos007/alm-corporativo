@@ -4,6 +4,9 @@ export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 // Variações de nome no CRM → nome canônico do time
+// Nomes reais do CRM (debug 2026-07-03):
+//   "Matheus Carvalho Silva", "Whatyla da silva ribeiro", "CARLOS ANDRE", "ANDRESSA",
+//   "Fernando Santos", "Rayssa Soares", "Clenildo Silva"
 const NOME_CANON: Record<string, string> = {
   "matheus":  "Mateus",
   "mateus":   "Mateus",
@@ -11,6 +14,7 @@ const NOME_CANON: Record<string, string> = {
   "carlos":   "Carlos",
   "fernando": "Fernando",
   "whatylla": "Whatylla",
+  "whatyla":  "Whatylla",   // CRM usa "Whatyla" (1 l)
   "rayssa":   "Rayssa",
   "clenildo": "Clenildo",
 }

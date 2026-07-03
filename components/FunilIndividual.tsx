@@ -68,6 +68,8 @@ function primNome(s: string) {
 const ALIASES: Record<string, string[]> = {
   mateus:   ["matheus"],
   matheus:  ["mateus"],
+  whatylla: ["whatyla"],
+  whatyla:  ["whatylla"],
 }
 
 function matchConsultor(nomeDb: string, nomeFixo: string) {
