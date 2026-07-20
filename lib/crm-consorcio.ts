@@ -123,15 +123,25 @@ function brazilDate(offsetDays = 0): string {
   return d.toISOString().slice(0, 10)
 }
 
-function dateRange(periodo: string): { start: string; end: string } {
+function dateRange(periodo: string, mes?: string): { start: string; end: string } {
   const today = brazilDate()
   if (periodo === "dia") return { start: today, end: today }
   if (periodo === "semana") return { start: brazilDate(-6), end: today }
 
   const br    = new Date(Date.now() - 3 * 60 * 60 * 1000)
+  const pad   = (n: number) => String(n).padStart(2, "0")
+
+  // mes específico (YYYY-MM): retorna intervalo completo do mês, capado em hoje
+  if (mes && /^\d{4}-\d{2}$/.test(mes)) {
+    const [y, m] = mes.split("-").map(Number)
+    const start  = `${y}-${pad(m)}-01`
+    const lastDay = new Date(y, m, 0).getDate()
+    const end    = `${y}-${pad(m)}-${pad(lastDay)}`
+    return { start, end: end > today ? today : end }
+  }
+
   const year  = br.getUTCFullYear()
   const month = br.getUTCMonth() + 1
-  const pad   = (n: number) => String(n).padStart(2, "0")
   const mm    = pad(month)
 
   // semana1..semana5: semanas fixas do mês (1-7, 8-14, 15-21, 22-28, 29-fim)
@@ -151,8 +161,8 @@ function dateRange(periodo: string): { start: string; end: string } {
   return { start: `${year}-${mm}-01`, end: today }
 }
 
-export async function getCrmDados(periodo: string = "mensal"): Promise<CrmDados> {
-  const { start, end } = dateRange(periodo)
+export async function getCrmDados(periodo: string = "mensal", mes?: string): Promise<CrmDados> {
+  const { start, end } = dateRange(periodo, mes)
   const today    = brazilDate()
   const tomorrow = brazilDate(1) // dataFinal exclusivo: usar amanhã inclui leads de hoje
 
