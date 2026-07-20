@@ -117,13 +117,16 @@ export async function GET(req: Request) {
       .sort((a, b) => b.fichas - a.fichas)
 
     // Vendas do mês: pipeline_stage em pago/vendido/venda_concluida OU venda_confirmada_paga=true
-    // Usa data_venda (data real da venda) como referência do mês — igual ao Base44.
-    // Fallback: updated_date → created_date para registros sem data_venda.
+    // Usa a data mais recente entre data_venda, updated_date e created_date para resistir a
+    // diferenças de cache entre o servidor do Vercel (US) e a API Base44.
     const SOLD_STAGES = new Set(["pago", "vendido", "venda_concluida"])
     const confirmados  = all.filter(s => {
       if (!s || s.is_sample) return false
       if (!(s.venda_confirmada_paga || SOLD_STAGES.has(s.pipeline_stage as string))) return false
-      const saleDate = ((s.data_venda || s.updated_date || s.created_date) as string ?? "").slice(0, 10)
+      const saleDate = [s.data_venda, s.updated_date, s.created_date]
+        .map(d => ((d as string) ?? "").slice(0, 10))
+        .filter(d => d >= "2020-01-01")
+        .sort().reverse()[0] ?? ""
       return saleDate >= start && saleDate <= end
     })
     const propVal      = (arr: Sim[]) => arr.reduce((sum, s) => sum + (Number(s.property_value) || 0), 0)
