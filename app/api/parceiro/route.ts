@@ -136,6 +136,24 @@ export async function GET(req: Request) {
       geral:      { count: confirmados.length, total: propVal(confirmados) },
     }
 
+    // Debug temporário
+    const { searchParams: sp } = new URL(req.url)
+    if (sp.get("debug") === "vendas") {
+      return Response.json({
+        total_all: all.length,
+        periodo: { start, end },
+        confirmados: confirmados.map(s => ({
+          id: (s.id as string)?.slice(0, 8),
+          tipo: s.qual_tipo_venda,
+          stage: s.pipeline_stage,
+          val: s.property_value,
+          data_venda: s.data_venda,
+          updated_date: (s.updated_date as string)?.slice(0, 10),
+          created_date: (s.created_date as string)?.slice(0, 10),
+        })),
+      })
+    }
+
     // Hoje
     const todaySims = sims.filter(s => (s.created_date as string ?? "").slice(0, 10) === end)
     const hoje = {
