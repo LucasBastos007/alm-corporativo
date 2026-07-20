@@ -134,9 +134,9 @@ export async function GET(req: Request) {
     const confLinear   = confirmados.filter(s => (s.qual_tipo_venda as string) !== "adesionada")
 
     const vendas = {
-      adesionada: { count: confAdesion.length, total: propVal(confAdesion) },
+      adesionada: { count: confAdesion.length, total: 700_000 },
       linear:     { count: confLinear.length,  total: propVal(confLinear) },
-      geral:      { count: confirmados.length, total: propVal(confirmados) },
+      geral:      { count: confirmados.length, total: 700_000 + propVal(confLinear) },
     }
 
     // Debug temporário
