@@ -54,7 +54,10 @@ export async function GET(req: Request) {
     const { start, end } = brazilMonthRange(mes)
 
     // limit=2000 garante que vendas confirmadas de meses anteriores não sejam cortadas pela paginação
-    const res = await fetch(`${BASE44}/entities/Simulation?limit=2000&sort=-created_date`, { cache: "no-store" })
+    const res = await fetch(`${BASE44}/entities/Simulation?limit=2000&sort=-created_date&_t=${Date.now()}`, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache, no-store", "Pragma": "no-cache" },
+    })
     if (!res.ok) return Response.json({ ok: false, error: `Base44: ${res.status}` }, { status: 502 })
 
     const all: Sim[] = await res.json()
