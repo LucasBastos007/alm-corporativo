@@ -18,11 +18,19 @@ const STAGE_RANK: Record<string, number> = {
 
 type Sim = Record<string, unknown>
 
-function brazilMonthRange() {
+function brazilMonthRange(mes?: string) {
   const now   = new Date(Date.now() - 3 * 60 * 60 * 1000)
+  const today = now.toISOString().slice(0, 10)
+  if (mes && /^\d{4}-\d{2}$/.test(mes)) {
+    const [y, m] = mes.split("-").map(Number)
+    const pad    = (n: number) => String(n).padStart(2, "0")
+    const start  = `${y}-${pad(m)}-01`
+    const lastDay = new Date(y, m, 0).getDate()
+    const end    = `${y}-${pad(m)}-${pad(lastDay)}`
+    return { start, end: end > today ? today : end }
+  }
   const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10)
-  const end   = now.toISOString().slice(0, 10)
-  return { start, end }
+  return { start, end: today }
 }
 
 function rank(s: Sim) { return STAGE_RANK[s.pipeline_stage as string] ?? -1 }
@@ -39,11 +47,14 @@ function firstNome(s: string) {
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const { start, end } = brazilMonthRange()
+    const { searchParams } = new URL(req.url)
+    const mes = searchParams.get("mes") ?? undefined
+    const { start, end } = brazilMonthRange(mes)
 
-    const res = await fetch(`${BASE44}/entities/Simulation?limit=500&sort=-created_date`, { cache: "no-store" })
+    // limit=2000 garante que vendas confirmadas de meses anteriores não sejam cortadas pela paginação
+    const res = await fetch(`${BASE44}/entities/Simulation?limit=2000&sort=-created_date`, { cache: "no-store" })
     if (!res.ok) return Response.json({ ok: false, error: `Base44: ${res.status}` }, { status: 502 })
 
     const all: Sim[] = await res.json()
@@ -102,9 +113,16 @@ export async function GET() {
       }))
       .sort((a, b) => b.fichas - a.fichas)
 
-    // Vendas: replica exatamente o cálculo da Área do Parceiro do Base44
-    // Base44 usa: venda_confirmada_paga=true, property_value, SEM filtro de mês
-    const confirmados  = all.filter(s => s.venda_confirmada_paga && !s.is_sample)
+    // Vendas do mês: pipeline_stage em pago/vendido/venda_concluida OU venda_confirmada_paga=true
+    // Usa data_venda (data real da venda) como referência do mês — igual ao Base44.
+    // Fallback: updated_date → created_date para registros sem data_venda.
+    const SOLD_STAGES = new Set(["pago", "vendido", "venda_concluida"])
+    const confirmados  = all.filter(s => {
+      if (!s || s.is_sample) return false
+      if (!(s.venda_confirmada_paga || SOLD_STAGES.has(s.pipeline_stage as string))) return false
+      const saleDate = ((s.data_venda || s.updated_date || s.created_date) as string ?? "").slice(0, 10)
+      return saleDate >= start && saleDate <= end
+    })
     const propVal      = (arr: Sim[]) => arr.reduce((sum, s) => sum + (Number(s.property_value) || 0), 0)
     const confAdesion  = confirmados.filter(s => (s.qual_tipo_venda as string) === "adesionada")
     const confLinear   = confirmados.filter(s => (s.qual_tipo_venda as string) !== "adesionada")
