@@ -23,7 +23,7 @@ const ETAPAS = [
   { label: "Vendido",     color: "#22c55e" },
 ]
 
-const CONSULTORES_FIXOS = ["Andressa","Carlos","Fernando","Whatylla","Mateus","Rayssa","Clenildo"]
+const CONSULTORES_FIXOS = ["Andressa","Carlos","Fernando","Mateus","Rayssa"]
 const COL_COLORS = ["#6366f1","#ec4899","#f59e0b","#16a34a","#2563eb","#7c3aed","#dc2626"]
 const MESES_PT   = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"]
 

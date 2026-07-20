@@ -42,7 +42,7 @@ interface Agendamento {
   nova_hora?: string | null
 }
 
-const CONSULTORES = ["Andressa","Carlos","Fernando","Whatylla","Mateus","Rayssa"]
+const CONSULTORES = ["Andressa","Carlos","Fernando","Mateus","Rayssa"]
 const COLORS = ["#6366f1","#ec4899","#f59e0b","#16a34a","#2563eb","#7c3aed","#dc2626","#0891b2","#f97316"]
 
 function primNome(s: string) {

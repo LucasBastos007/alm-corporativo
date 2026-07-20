@@ -13,10 +13,7 @@ const NOME_CANON: Record<string, string> = {
   "andressa": "Andressa",
   "carlos":   "Carlos",
   "fernando": "Fernando",
-  "whatylla": "Whatylla",
-  "whatyla":  "Whatylla",   // CRM usa "Whatyla" (1 l)
   "rayssa":   "Rayssa",
-  "clenildo": "Clenildo",
 }
 
 function primNome(s: string): string {
